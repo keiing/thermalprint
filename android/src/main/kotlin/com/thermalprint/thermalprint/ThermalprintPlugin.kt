@@ -5,9 +5,9 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
-import android.graphics.BitmapFactory
 import android.os.IBinder
 import android.util.Log
+import com.google.gson.Gson
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
@@ -18,11 +18,7 @@ import net.posprinter.posprinterface.ProcessData
 import net.posprinter.posprinterface.TaskCallback
 import net.posprinter.service.PosprinterService
 import net.posprinter.utils.*
-import net.posprinter.utils.PosPrinterDev.PortInfo
 import java.util.*
-
-
-const val Tag = "com.thermalprint.printPlugin"
 
 
 interface PrintCallback {
@@ -38,11 +34,14 @@ interface PrintCallback {
     fun failed() {}
 }
 
+const val Tag: String = "com.thermalprint.printPlugin"
+
 /** ThermalprintPlugin */
 class ThermalprintPlugin : FlutterPlugin, MethodCallHandler {
 
     companion object {
         const val CHANNEL: String = Tag
+
     }
 
     private lateinit var channel: MethodChannel
@@ -172,7 +171,7 @@ class ThermalprintPlugin : FlutterPlugin, MethodCallHandler {
                 object : PrintCallback {
                     override fun printList(list: MutableList<ByteArray>) {
                         super.printList(list);
-                        if(width == 58){
+                        if (width == 58) {
                             list.add(DataForSendToPrinterPos58.initializePrinter())
                             list.add(StringUtils.strTobytes("打印测试"))
                             list.add(DataForSendToPrinterPos58.printAndFeedLine())
@@ -197,22 +196,19 @@ class ThermalprintPlugin : FlutterPlugin, MethodCallHandler {
         /// 打开连接
         else if (call.method == "open") {
 
-//            var usbAddress: String = "/dev/bus/usb/002/007"
+            // 获取 Flutter 传递的 Map
+            val printer_map: String = call.argument<String?>("printer") ?: "";
 
-            // 连接中
-//            if (ISCONNECT) {
-//                result.success(1);
-//                return
-//            }
+            Log.d(Tag, "printer_map:" + printer_map)
+
+            val customPrinter: CustomPrinter = Gson().fromJson(printer_map, CustomPrinter::class.java)
 
             /// 默认为usb
-            val printer_type: String = call.argument<String?>("printer_type") ?: "0";
-
-
-            if (printer_type == "0") {
-                val usbAddress: String = call.argument<String>("address")!!;
-
-                Log.e(Tag, usbAddress);
+//            val printer_type: String = call.argument<String?>("printer_type") ?: "0";
+//
+//
+            if (customPrinter.printer_type == 0) {
+                val usbAddress: String = customPrinter.printer_config.address;
 
                 connectUSB(usbAddress, object : TaskCallback {
                     override fun OnSucceed() {
@@ -225,22 +221,24 @@ class ThermalprintPlugin : FlutterPlugin, MethodCallHandler {
                         result.success(-1);
                     }
                 });
-            } else if (printer_type == "1") {
-                val ip: String = call.argument<String>("ip")!!;
-                val port: Int = call.argument<Int>("port")!!;
-                Log.e(Tag, ip);
+            } else if (customPrinter.printer_type == 1) {
+                val ip: String = customPrinter.printer_config.ip;
+                val port: Int = customPrinter.printer_config.port;
 
-                connectIp(ip, port, object : TaskCallback {
-                    override fun OnSucceed() {
-                        ISCONNECT = true
-                        result.success(1);
-                    }
+                connectIp(
+                    ip, port,
+                    object : TaskCallback {
+                        override fun OnSucceed() {
+                            ISCONNECT = true
+                            result.success(1);
+                        }
 
-                    override fun OnFailed() {
-                        ISCONNECT = false
-                        result.success(-1);
-                    }
-                });
+                        override fun OnFailed() {
+                            ISCONNECT = false
+                            result.success(-1);
+                        }
+                    },
+                );
             } else {
                 result.success(-1);
             }
@@ -353,3 +351,4 @@ class ThermalprintPlugin : FlutterPlugin, MethodCallHandler {
         channel.setMethodCallHandler(null)
     }
 }
+
