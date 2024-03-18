@@ -28,9 +28,4 @@
   <uses-permission android:name="android.permission.READ_LOGS"/>
   <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
 
-  <application>
-    <service android:name="net.posprinter.service.PosprinterService"/>
-    <service  android:name="net.posprinter.service.PrinterConnectionsService"/>
-  </application>
-
 </manifest>
