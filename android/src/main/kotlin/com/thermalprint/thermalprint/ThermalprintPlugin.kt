@@ -6,6 +6,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
+import android.graphics.BitmapFactory
 import android.os.IBinder
 import android.util.Log
 import com.google.gson.Gson
@@ -240,6 +241,32 @@ class ThermalprintPlugin : FlutterPlugin, MethodCallHandler {
             }
 
 
+        } else if (call.method == "writeImage") {
+
+            val width: Int = call.argument<Int?>("width") ?: 384;
+
+//            val width: Int = customPrinter.width;
+
+            val connect = myBinder!!.GetConnect();
+
+            Log.e(Tag, "${connect != null}");
+
+
+            if (connect == null) {
+                result.success(-1);
+                return
+            }
+
+            val img = call.argument<ByteArray>("bitmap")!!;
+            val bmp = BitmapFactory.decodeByteArray(img, 0, img.size)
+
+
+            val printer = POSPrinter(connect);
+
+            printer.selectBitmapModel(POSConst.DOUBLE_DENSITY_24, width, bmp)
+                .feedLine(1)
+
+            result.success(1);
         } else if (call.method == "close") {
             myBinder!!.Disconnect(
                 null
